@@ -57,21 +57,12 @@ const browserHistory = useRouterHistory(createHistory)({
 });
 
 // Setup application
-let store;
 const routerMiddleware = createRouterMiddleware(browserHistory);
-if (window.NO_LOG) {
-  store = createStore(combinedReducer, applyMiddleware(
-    routerMiddleware,
-    thunkMiddleware
-  ));
-} else {
-  const loggerMiddleware = createLogger();
-  store = createStore(combinedReducer, applyMiddleware(
-    routerMiddleware,
-    thunkMiddleware,
-    loggerMiddleware
-  ));
+const middlewares = [routerMiddleware, thunkMiddleware];
+if(process.env.NODE_ENV !== 'production') {
+  middlewares.push(createLogger());
 }
+const store = createStore(combinedReducer, applyMiddleware(...middlewares));
 
 const history = syncHistoryWithStore(browserHistory, store);
 

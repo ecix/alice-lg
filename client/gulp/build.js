@@ -18,7 +18,7 @@ var tasks = fs.readdirSync('./gulp/tasks').filter(function(filename){
 global.config = JSON.parse(fs.readFileSync('./gulp/config.json'));
 
 // == Import all tasks
-tasks.forEach(function(task){
+tasks.forEach(function(task) {
   require('./tasks/' + task);
 });
 
@@ -30,18 +30,17 @@ gulp.task('build', [
   'stylesheets',
   'assets',
   'app'
-], function() {
-});
+]);
 
 
 // == Production task
-gulp.task('production', ['build', 'appmin'], function() {
+gulp.task('production', function(cb) {
+  process.env.NODE_ENV = 'production';
+  runSequence('default', cb);
 });
 
 // == Register default task
-gulp.task('default', ['clean'], function() {
-  runSequence(
-    'build'
-  );
+gulp.task('default', ['clean'], function(cb) {
+  runSequence('build', cb);
 });
 
