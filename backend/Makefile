@@ -25,6 +25,14 @@ LDFLAGS=-ldflags="-X main.version=$(APP_VERSION)"
 all: $(TARGET)
 	@echo "Built $(VERSION) @ $(TARGET)"
 
+prod:
+	rice embed-go
+	$(MAKE) $(TARGET)
+
+dev:
+	rm -f rice-box.go
+	$(MAKE) $(TARGET)
+
 deps:
 	go get .
 
