@@ -3,10 +3,10 @@ package main
 import (
 	"compress/gzip"
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"strconv"
+
 	"strings"
+	"time"
 
 	"github.com/ecix/alice-lg/backend/api"
 
@@ -89,8 +89,10 @@ func apiRegisterEndpoints(router *httprouter.Router) error {
 		endpoint(apiRoutesList))
 
 	// Querying
-	router.GET("/api/routeservers/:id/lookup/prefix",
-		endpoint(apiLookupPrefix))
+	if AliceConfig.Server.EnablePrefixLookup == true {
+		router.GET("/api/lookup/prefix",
+			endpoint(apiLookupPrefixGlobal))
+	}
 
 	return nil
 }
@@ -114,8 +116,9 @@ func apiConfigShow(_req *http.Request, _params httprouter.Params) (api.Response,
 			Asn:        AliceConfig.Ui.RoutesNoexports.Asn,
 			NoexportId: AliceConfig.Ui.RoutesNoexports.NoexportId,
 		},
-		NoexportReasons: AliceConfig.Ui.RoutesNoexports.Reasons,
-		RoutesColumns:   AliceConfig.Ui.RoutesColumns,
+		NoexportReasons:     AliceConfig.Ui.RoutesNoexports.Reasons,
+		RoutesColumns:       AliceConfig.Ui.RoutesColumns,
+		PrefixLookupEnabled: AliceConfig.Server.EnablePrefixLookup,
 	}
 	return result, nil
 }
@@ -126,9 +129,9 @@ func apiRouteserversList(_req *http.Request, _params httprouter.Params) (api.Res
 	routeservers := []api.Routeserver{}
 
 	sources := AliceConfig.Sources
-	for id, source := range sources {
+	for _, source := range sources {
 		routeservers = append(routeservers, api.Routeserver{
-			Id:   id,
+			Id:   source.Id,
 			Name: source.Name,
 		})
 	}
@@ -139,43 +142,6 @@ func apiRouteserversList(_req *http.Request, _params httprouter.Params) (api.Res
 	}
 
 	return response, nil
-}
-
-// Helper: Validate source Id
-func validateSourceId(id string) (int, error) {
-	rsId, err := strconv.Atoi(id)
-	if err != nil {
-		return 0, err
-	}
-
-	if rsId < 0 {
-		return 0, fmt.Errorf("Source id may not be negative")
-	}
-	if rsId >= len(AliceConfig.Sources) {
-		return 0, fmt.Errorf("Source id not within [0, %d]", len(AliceConfig.Sources)-1)
-	}
-
-	return rsId, nil
-}
-
-// Helper: Validate query string
-func validateQueryString(req *http.Request, key string) (string, error) {
-	query := req.URL.Query()
-	values, ok := query[key]
-	if !ok {
-		return "", fmt.Errorf("Query param %s is missing.", key)
-	}
-
-	if len(values) != 1 {
-		return "", fmt.Errorf("Query param %s is ambigous.", key)
-	}
-
-	value := values[0]
-	if value == "" {
-		return "", fmt.Errorf("Query param %s may not be empty.", key)
-	}
-
-	return value, nil
 }
 
 // Handle status
@@ -212,19 +178,60 @@ func apiRoutesList(_req *http.Request, params httprouter.Params) (api.Response, 
 	return result, err
 }
 
-// Handle lookup
-func apiLookupPrefix(req *http.Request, params httprouter.Params) (api.Response, error) {
-	rsId, err := validateSourceId(params.ByName("id"))
+// Handle global lookup
+func apiLookupPrefixGlobal(req *http.Request, params httprouter.Params) (api.Response, error) {
+	// Get prefix to query
+	q, err := validateQueryString(req, "q")
 	if err != nil {
 		return nil, err
 	}
 
-	prefix, err := validateQueryString(req, "q")
+	q, err = validatePrefixQuery(q)
 	if err != nil {
 		return nil, err
 	}
 
-	source := AliceConfig.Sources[rsId].getInstance()
-	result, err := source.LookupPrefix(prefix)
-	return result, err
+	// Get pagination params
+	limit, offset, err := validatePaginationParams(req, 50, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check what we want to query
+	//  Prefix -> fetch prefix
+	//       _ -> fetch neighbours and routes
+	lookupPrefix := MaybePrefix(q)
+
+	// Measure response time
+	t0 := time.Now()
+
+	// Perform query
+	var routes []api.LookupRoute
+	if lookupPrefix {
+		routes = AliceRoutesStore.LookupPrefix(q)
+
+	} else {
+		neighbours := AliceNeighboursStore.LookupNeighbours(q)
+		routes = AliceRoutesStore.LookupPrefixForNeighbours(neighbours)
+	}
+
+	// Paginate result
+	totalRoutes := len(routes)
+	cap := offset + limit
+	if cap > totalRoutes {
+		cap = totalRoutes
+	}
+
+	queryDuration := time.Since(t0)
+	response := api.RoutesLookupResponseGlobal{
+		Routes: routes[offset:cap],
+
+		TotalRoutes: totalRoutes,
+		Limit:       limit,
+		Offset:      offset,
+
+		Time: float64(queryDuration) / 1000.0 / 1000.0, // nano -> micro -> milli
+	}
+
+	return response, nil
 }

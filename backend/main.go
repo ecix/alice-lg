@@ -9,6 +9,8 @@ import (
 )
 
 var AliceConfig *Config
+var AliceRoutesStore *RoutesStore
+var AliceNeighboursStore *NeighboursStore
 
 func main() {
 	var err error
@@ -31,6 +33,19 @@ func main() {
 	printBanner()
 
 	log.Println("Using configuration:", AliceConfig.File)
+
+	// Setup local routes store
+	AliceRoutesStore = NewRoutesStore(AliceConfig)
+
+	if AliceConfig.Server.EnablePrefixLookup == true {
+		AliceRoutesStore.Start()
+	}
+
+	// Setup local neighbours store
+	AliceNeighboursStore = NewNeighboursStore(AliceConfig)
+	if AliceConfig.Server.EnablePrefixLookup == true {
+		AliceNeighboursStore.Start()
+	}
 
 	// Setup request routing
 	router := httprouter.New()

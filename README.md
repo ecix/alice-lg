@@ -1,63 +1,80 @@
+# Alice-LG - Your friendly looking glass
+__"No, no! The adventures first, explanations take such a dreadful time."__  
+_Lewis Carroll, Alice's Adventures in Wonderland & Through the Looking-Glass_
 
-# Alice LG - Your friendly looking glass
+Take a look at an Alice-LG production example:
+- https://lg.ecix.net/
+- https://lg.ecix.net/api/config
+- https://lg.ecix.net/api/routeservers
+- https://lg.ecix.net/api/routeservers/0/status
+- https://lg.ecix.net/api/routeservers/0/neighbours
+- https://lg.ecix.net/api/routeservers/0/neighbours/ID109_AS31078/routes
+- https://lg.ecix.net/api/lookup/prefix?q=217.115.0.0
 
-Alice is a frontend to the API exposed by 
-services implementing Barry O'Donovan's
-[birds-eye API design](https://github.com/inex/birds-eye-design/) to
-[the BIRD routing daemon](http://bird.network.cz/):
+# Explanations
+Alice-LG is a BGP looking glass which gets its data from external APIs.
 
- * INEX Birdseye API (https://github.com/inex/birdseye)
- * Birdwatcher (https://github.com/ecix/birdwatcher)
+Currently Alice-LG supports the following APIs:
+- [birdwatcher API](https://github.com/ecix/birdwatcher) for [BIRD](http://bird.network.cz/)
 
+Normally you would first install the [birdwatcher API](https://github.com/ecix/birdwatcher) directly on the machine(s) where you run [BIRD](http://bird.network.cz/) on
+and then install Alice-LG on a seperate public facing server and point her to the afore mentioned [birdwatcher API](https://github.com/ecix/birdwatcher).
 
-The project was started at the
-[RIPE IXP Tools Hackathon](https://atlas.ripe.net/hackathon/ixp-tools/) 
+This project was a direct result of the [RIPE IXP Tools Hackathon](https://atlas.ripe.net/hackathon/ixp-tools/) 
 just prior to [RIPE73](https://ripe73.ripe.net/) in Madrid, Spain.
 
+Major thanks to Barry O'Donovan who built the original [INEX Bird's Eye](https://github.com/inex/birdseye) BIRD API of which Alice-LG is a spinnoff
 
-## Building Alice from scratch
+## Building Alice-LG from scratch
+__These examples include setting up your Go environment, if you already have set that up then you can obviously skip that__
 
-Alice requires a working (and configured) `golang` installation
-for the backend.
-The frontend requires `npm` for building.
+In case you have trouble with `npm` and `gulp` you can try using `yarn`.
 
-
-Clone this repository in your go workspace and type
-`make`
-
-This will download all required *go* and *js* dependencies
-and will start building alice.
-
-
-## Installation
-
-For systemwide deployment it is advised to add the contents
-of the local `etc/` to your system's `/etc`
-directory.
-
-
+### CentOS 7:
+First add the following lines at the end of your ~/.bash_profile:
+```
+GOPATH=$HOME/go
+export GOPATH
+PATH=$PATH:$GOPATH/bin
+export PATH
+```
+Now run:
+```
+source ~/.bash_profile
+sudo yum install golang npm
+sudo npm install --global gulp-cli
+go get github.com/GeertJohan/go.rice
+go get github.com/GeertJohan/go.rice/rice
+mkdir -p ~/go/bin ~/go/pkg ~/go/src
+cd ~/go/src/
+git clone git@github.com:ecix/alice-lg.git
+cd alice-lg/client
+make
+cd ..
+make
+```
+Your Alice_LG source will now be located at `~/go/src/alice-lg` and your alice-LG executable should be at `~/go/src/alice-lg/bin/alice-lg-linux-amd64`
 
 ## Configuration
 
-An example configuration can be found under
-[etc/alicelg/alice.example.conf](https://github.com/ecix/alice/blob/master/etc/alicelg/alice.example.conf).
+An example configuration can be found at 
+[etc/alicelg/alice.example.conf](https://github.com/ecix/alice-lg/blob/readme_update/etc/alicelg/alice.example.conf).
 
 You can copy it to any of the following locations:
 
-    etc/alicelg/alice.conf # local
-    etc/alicelg/alice.local.conf # local as well
-    /etc/alicelg/alice.conf # global
+    etc/alicelg/alice.conf        # local
+    etc/alicelg/alice.local.conf  # local
+    /etc/alicelg/alice.conf       # global
 
 
-You will have to at least edit it to add bird API servers:
+You will have to edit the configuration file as you need to point Alice-LG to the correct [APIs](https://github.com/ecix/birdwatcher):
 
     [source.0]
     name = rs1.example.com (IPv4)
     [source.0.birdwatcher]
     api = http://rs1.example.com:29184/
-    # Optional:
-    show_last_reboot = true
-    timezone = UTC
+    # show_last_reboot = true
+    # timezone = UTC
 
     [source.1]
     name = rs1.example.com (IPv6)

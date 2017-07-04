@@ -24,6 +24,8 @@ type ConfigResponse struct {
 	NoexportReasons map[int]string `json:"noexport_reasons"`
 
 	RoutesColumns map[string]string `json:"routes_columns"`
+
+	PrefixLookupEnabled bool `json:"prefix_lookup_enabled"`
 }
 
 type Rejection struct {
@@ -114,6 +116,8 @@ type NeighboursResponse struct {
 	Neighbours Neighbours `json:"neighbours"`
 }
 
+type NeighboursLookupResults map[int][]Neighbour
+
 // BGP
 type Community []int
 
@@ -131,6 +135,27 @@ type BgpInfo struct {
 type Route struct {
 	Id          string `json:"id"`
 	NeighbourId string `json:"neighbour_id"`
+
+	Network   string        `json:"network"`
+	Interface string        `json:"interface"`
+	Gateway   string        `json:"gateway"`
+	Metric    int           `json:"metric"`
+	Bgp       BgpInfo       `json:"bgp"`
+	Age       time.Duration `json:"age"`
+	Type      []string      `json:"type"` // [BGP, unicast, univ]
+
+	Details Details `json:"details"`
+}
+
+// Lookup Prefixes
+type LookupRoute struct {
+	Id          string    `json:"id"`
+	NeighbourId string    `json:"neighbour_id"`
+	Neighbour   Neighbour `json:"neighbour"`
+
+	State string `json:"state"` // Filtered, Imported, ...
+
+	Routeserver Routeserver `json:"routeserver"`
 
 	Network   string        `json:"network"`
 	Interface string        `json:"interface"`
@@ -165,7 +190,19 @@ type RoutesResponse struct {
 	NotExported []Route   `json:"not_exported"`
 }
 
-type LookupResponse struct {
-	Api    ApiStatus `json:"api"`
-	Routes []Route   `json:"routes"`
+type RoutesLookupResponse struct {
+	Api    ApiStatus     `json:"api"`
+	Routes []LookupRoute `json:"routes"`
+}
+
+type RoutesLookupResponseGlobal struct {
+	Routes []LookupRoute `json:"routes"`
+
+	// Pagination
+	TotalRoutes int `json:"total_routes"`
+	Limit       int `json:"limit"`
+	Offset      int `json:"offset"`
+
+	// Meta
+	Time float64 `json:"query_duration_ms"`
 }
