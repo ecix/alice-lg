@@ -59,7 +59,22 @@ func (self *Gobgpwatcher) Neighbours() (api.NeighboursResponse, error) {
 }
 
 func (self *Gobgpwatcher) Routes(neighbourId string) (api.RoutesResponse, error) {
-	return api.RoutesResponse{}, nil
+	gobgp, err := self.client.GetJson("/v1/neighbours/" + neighbourId + "/routes")
+	if err != nil {
+		return api.RoutesResponse{}, err
+	}
+
+	routesImported, err := parseRoutesImported(gobgp, self.config)
+	if err != nil {
+		return api.RoutesResponse{}, err
+	}
+
+	// Make response
+	response := api.RoutesResponse{
+		Imported: routesImported,
+	}
+
+	return response, nil
 }
 
 func (self *Gobgpwatcher) AllRoutes() (api.RoutesResponse, error) {
