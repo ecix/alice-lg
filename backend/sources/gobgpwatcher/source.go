@@ -42,3 +42,16 @@ func (self *Gobgpwatcher) Status() (api.StatusResponse, error) {
 
 	return response, nil
 }
+
+func (self *Gobgpwatcher) Neighbours() (api.NeighboursResponse, error) {
+
+	return api.NeighboursResponse{}, "implement me"
+}
+
+func (self *Gobgpwatcher) Routes(neighbourId string) (api.RoutesResponse, error) {
+	return api.RoutesResponse{}, "implement me"
+}
+
+func (self *Gobgpwatcher) AllRoutes() (api.RoutesResponse, error) {
+	return nil, "routes dumping not implemented"
+}
