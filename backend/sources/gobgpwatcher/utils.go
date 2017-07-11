@@ -51,3 +51,18 @@ func mustDurationMs(value interface{}, fallback time.Duration) time.Duration {
 
 	return sval
 }
+
+func mustIntList(value interface{}) []int {
+	res := []int{}
+
+	list, ok := value.([]interface{})
+	if !ok {
+		return res
+	}
+
+	for _, i := range list {
+		res = append(res, mustInt(i, 0))
+	}
+
+	return res
+}
