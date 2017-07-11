@@ -35,11 +35,24 @@ func parseServerStatus(gobgp ClientResponse, config Config) (api.Status, error) 
 
 	status := api.Status{
 		ServerTime: time.Now(),
-		Version:    "",
+		Version:    "GoBGP",
 		RouterId:   routerId,
+		Message:    "GoBGP is up and running",
 	}
 
 	return status, nil
+}
+
+func parseSessionState(state string) string {
+	if state == "active" {
+		return "start"
+	}
+
+	if state == "established" {
+		return "up"
+	}
+
+	return state
 }
 
 func parseNeighbour(info map[string]interface{}, config Config) api.Neighbour {
@@ -52,7 +65,7 @@ func parseNeighbour(info map[string]interface{}, config Config) api.Neighbour {
 
 	descr := fmt.Sprintf("AS%d %s", asn, addr)
 
-	peerState := mustString(state["session-state"], "down")
+	peerState := parseSessionState(mustString(state["session-state"], "down"))
 
 	timers := mustStringMap(info["timers"])
 	uptime := mustDurationMs(timers["uptime"], 0)

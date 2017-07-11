@@ -14,11 +14,11 @@ func mustString(value interface{}, fallback string) string {
 }
 
 func mustInt(value interface{}, fallback int) int {
-	sval, ok := value.(int)
+	sval, ok := value.(float64)
 	if !ok {
 		return fallback
 	}
-	return sval
+	return int(sval)
 }
 
 func mustStringMap(value interface{}) map[string]interface{} {

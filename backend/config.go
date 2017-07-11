@@ -8,6 +8,7 @@ import (
 
 	"github.com/ecix/alice-lg/backend/sources"
 	"github.com/ecix/alice-lg/backend/sources/birdwatcher"
+	"github.com/ecix/alice-lg/backend/sources/gobgpwatcher"
 
 	"github.com/go-ini/ini"
 	_ "github.com/imdario/mergo"
@@ -15,6 +16,7 @@ import (
 
 const SOURCE_UNKNOWN = 0
 const SOURCE_BIRDWATCHER = 1
+const SOURCE_GOBGPWATCHER = 2
 
 type ServerConfig struct {
 	Listen             string `ini:"listen_http"`
@@ -48,7 +50,8 @@ type SourceConfig struct {
 	Type int
 
 	// Source configurations
-	Birdwatcher birdwatcher.Config
+	Birdwatcher  birdwatcher.Config
+	Gobgpwatcher gobgpwatcher.Config
 }
 
 type Config struct {
@@ -81,6 +84,8 @@ func getBackendType(section *ini.Section) int {
 	name := section.Name()
 	if strings.HasSuffix(name, "birdwatcher") {
 		return SOURCE_BIRDWATCHER
+	} else if strings.HasSuffix(name, "gobgpwatcher") {
+		return SOURCE_GOBGPWATCHER
 	}
 
 	return SOURCE_UNKNOWN
@@ -225,6 +230,10 @@ func getSources(config *ini.File) ([]SourceConfig, error) {
 			backendConfig.MapTo(&config.Birdwatcher)
 			config.Birdwatcher.Id = config.Id
 			config.Birdwatcher.Name = config.Name
+		case SOURCE_GOBGPWATCHER:
+			backendConfig.MapTo(&config.Gobgpwatcher)
+			config.Gobgpwatcher.Id = config.Id
+			config.Gobgpwatcher.Name = config.Name
 		}
 
 		// Add to list of sources
@@ -287,6 +296,8 @@ func (source SourceConfig) getInstance() sources.Source {
 	switch source.Type {
 	case SOURCE_BIRDWATCHER:
 		return birdwatcher.NewBirdwatcher(source.Birdwatcher)
+	case SOURCE_GOBGPWATCHER:
+		return gobgpwatcher.NewGobgpwatcher(source.Gobgpwatcher)
 	}
 
 	return nil
