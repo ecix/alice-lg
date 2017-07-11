@@ -1,6 +1,8 @@
 package gobgpwatcher
 
 import (
+	"fmt"
+
 	"github.com/ecix/alice-lg/backend/api"
 )
 
@@ -44,14 +46,22 @@ func (self *Gobgpwatcher) Status() (api.StatusResponse, error) {
 }
 
 func (self *Gobgpwatcher) Neighbours() (api.NeighboursResponse, error) {
+	gobgp, err := self.client.GetJson("/v1/neighbours")
+	if err != nil {
+		return api.NeighboursResponse{}, err
+	}
 
-	return api.NeighboursResponse{}, "implement me"
+	neighbours, err := parseNeighbours(gobgp, self.config)
+	response := api.NeighboursResponse{
+		Neighbours: neighbours,
+	}
+	return response, err
 }
 
 func (self *Gobgpwatcher) Routes(neighbourId string) (api.RoutesResponse, error) {
-	return api.RoutesResponse{}, "implement me"
+	return api.RoutesResponse{}, nil
 }
 
 func (self *Gobgpwatcher) AllRoutes() (api.RoutesResponse, error) {
-	return nil, "routes dumping not implemented"
+	return api.RoutesResponse{}, fmt.Errorf("Routes dumping not implemented")
 }

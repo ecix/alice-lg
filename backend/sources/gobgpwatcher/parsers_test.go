@@ -48,3 +48,16 @@ func Test_ParseServerStatus(t *testing.T) {
 		t.Error("Router id does not match")
 	}
 }
+
+func Test_ParseNeighbours(t *testing.T) {
+	gobgp := readTestData("./_test/gobgp_neighbours.json")
+
+	neighbours, err := parseNeighbours(gobgp, Config{})
+	if err != nil {
+		t.Error(err)
+	}
+
+	if len(neighbours) == 0 {
+		t.Error("Number of neighbours should be > 0")
+	}
+}
