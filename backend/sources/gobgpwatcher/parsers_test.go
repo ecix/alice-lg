@@ -61,3 +61,16 @@ func Test_ParseNeighbours(t *testing.T) {
 		t.Error("Number of neighbours should be > 0")
 	}
 }
+
+func Test_ParseRoutesImported(t *testing.T) {
+	gobgp := readTestData("./_test/gobgp_routes.json")
+
+	routes, err := parseRoutesImported(gobgp, Config{})
+	if err != nil {
+		t.Error(err)
+	}
+
+	if len(routes) == 0 {
+		t.Error("There should be routes")
+	}
+}

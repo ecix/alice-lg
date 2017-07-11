@@ -114,3 +114,78 @@ func parseNeighbours(gobgp ClientResponse, config Config) (api.Neighbours, error
 
 	return neighbours, nil
 }
+
+func bgpParseNextHop(attrs []map[string]interface{}) string {
+	for _, attr := range attrs {
+		if attr["nexthop"] != nil {
+			return attr["nexthop"].(string)
+		}
+	}
+	return ""
+}
+
+func bgpParseAsPath(attrs []map[string]interface{}) []int {
+	for _, attr := range attrs {
+		if attr["as_paths"] != nil {
+			// build aspath.
+			path := attr["as_paths"].([]interface{})[0].(map[string]interface{})
+			asns := mustIntList(path["asns"])
+			return asns
+		}
+	}
+
+	return []int{}
+}
+
+func parseBgpInfo(
+	info map[string]interface{},
+	attrs []map[string]interface{},
+	config Config,
+) api.BgpInfo {
+
+	bgpInfo := api.BgpInfo{
+		Origin: mustString(info["source-id"], "unknown source"),
+
+		AsPath:  bgpParseAsPath(attrs),
+		NextHop: bgpParseNextHop(attrs),
+
+		// Communities: bgpParseCommunities(attrs),
+		// LargeCommunities: bgpParseLargeCommunities(attrs)
+	}
+
+	return bgpInfo
+}
+
+func parseRoute(prefix string, info map[string]interface{}, config Config) api.Route {
+
+	attrs := mustStringMapList(info["attrs"])
+	bgpInfo := parseBgpInfo(info, attrs, config)
+
+	route := api.Route{
+		Id: prefix,
+
+		NeighbourId: mustString(info["neighbor-ip"], ""),
+		Network:     prefix,
+
+		Bgp: bgpInfo,
+		Age: mustDurationMs(info["age"], 0),
+
+		Details: info,
+	}
+	return route
+}
+
+func parseRoutesImported(gobgp ClientResponse, config Config) ([]api.Route, error) {
+	routes := []api.Route{}
+	res := mustStringMap(gobgp["result"])
+
+	for prefix, prefixRoutes := range res {
+		for _, info := range prefixRoutes.([]interface{}) {
+			routeInfo := mustStringMap(info)
+			route := parseRoute(prefix, routeInfo, config)
+			routes = append(routes, route)
+		}
+	}
+
+	return routes, nil
+}
